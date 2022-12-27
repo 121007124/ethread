@@ -216,8 +216,6 @@ ETHREAD_EXTERN_C void ethread_CreateThreadEx_21_ethread(PMDATA_INF pRetData, INT
         int r = _threadpool_call(args->pfn, args->arr, args->count);
         if ( args->hEvent )
             CloseHandle(args->hEvent);
-        if ( args->arr )
-            delete[] args->arr;
         delete args;
         return r;
     };

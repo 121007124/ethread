@@ -34,12 +34,14 @@ ETHREAD_EXTERN_C void ethread_ThreadPoolCopy_9_ethread(PMDATA_INF pRetData, INT 
     
     // 这里直接新建一个线程池放等号左边, 一般情况下线程池是不支持复制构造, 这里看自己发挥
     // 或者可以改成引用计数的方式, 让等号两边的线程池都是同一个对象
-    if ( !poolLeft )
+    if ( !poolLeft && poolRight )
     {
         // 等号左边没有的才创建
-        poolLeft = new ThreadPool;
-        pArgInf[0].m_ppCompoundData[0] = poolLeft;
+        int size = (int)poolRight->size();
+        int maxSize = (int)poolRight->maxSize();
+        poolLeft = new ThreadPool{ size, maxSize };
     }
+    pArgInf[0].m_ppCompoundData[0] = poolLeft;
 }
 
 // 调用格式: _SDT_NULL 线程池析构函数, 命令说明: "线程池析构函数"
@@ -76,7 +78,7 @@ ETHREAD_EXTERN_C void ethread_ThreadPool_AddTask_12_ethread(PMDATA_INF pRetData,
 {
     if ( pArgInf[1].m_dtDataType != SDT_INT && pArgInf[1].m_dtDataType != SDT_SUB_PTR )
         return;
-    ThreadPool* pool = pool_getobj(pArgInf[0], 0);
+    ThreadPool* pool = pool_getobj(pArgInf[0], 5, 10);
     if ( !pool ) return;
 
     PTHREAD_ARG_STRUCT args = _thread_GetArgs(nArgCount, pArgInf, 2, (LPVOID)pArgInf[1].m_dwSubCodeAdr);
@@ -85,12 +87,15 @@ ETHREAD_EXTERN_C void ethread_ThreadPool_AddTask_12_ethread(PMDATA_INF pRetData,
     pool->commit([](PTHREAD_ARG_STRUCT args)
                 {
                     int r = _threadpool_call(args->pfn, args->arr, args->count);
-                    if ( args->arr )
-                        delete[] args->arr;
                     delete args;
                     return r;
                 }, args);
     pRetData->m_bool = true;
+
+    //std::thread thread;
+    //std::thread::native_handle();
+    //std::this_thread::sleep_for();
+        
 }
 
 

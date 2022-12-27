@@ -54,39 +54,41 @@ inline __declspec( naked ) int _threadpool_call(LPVOID pfn, LPINT arr, int count
     }
 }
 
+typedef struct LIST_NODE
+{
+    struct LIST_NODE* next;
+    LPVOID data;
+} *PLIST_NODE;
+
 typedef struct THREAD_ARG_STRUCT
 {
-    int     count;  // 传递到易语言那边的参数数量
-    LPINT   arr;    // 传递到易语言那边的参数数组
-    LPVOID  pfn;    // 易语言那边的子程序
-    HANDLE  hEvent; // 事件对象, 用来判断是否等待线程执行
-}* PTHREAD_ARG_STRUCT;
-
-inline PTHREAD_ARG_STRUCT _thread_GetArgs(INT nArgCount, PMDATA_INF pArgInf, int argStart, LPVOID pfn)
-{
-    const int maxArgCount = nArgCount - argStart;
-    if ( maxArgCount > 256 )
-        return 0; // 做一个限制, 最大支持256个参数, 一般人不会用到这么多参数, 如果用到这么多参数应该传递数组
-
-    PTHREAD_ARG_STRUCT ret = new THREAD_ARG_STRUCT;
-    ret->arr = 0;
-    ret->count = 0;
-    ret->pfn = pfn;
-    ret->hEvent = 0;
-    if ( maxArgCount > 0 )
+    int         count;  // 传递到易语言那边的参数数量
+    LPINT       arr;    // 传递到易语言那边的参数数组
+    LPVOID      pfn;    // 易语言那边的子程序
+    HANDLE      hEvent; // 事件对象, 用来判断是否等待线程执行
+    PLIST_NODE  node;   // 链表头节点, 把需要释放的内存放到链表里面, 析构后释放
+    
+    THREAD_ARG_STRUCT()
     {
-        ret->arr = new int[maxArgCount];
-        for ( int i = 0; i < maxArgCount; i++ )
+        memset(this, 0, sizeof(*this));
+    }
+    ~THREAD_ARG_STRUCT()
+    {
+        if ( arr )
         {
-            MDATA_INF& data = pArgInf[i + argStart];
-            if ( data.m_dtDataType == _SDT_NULL )
-                break;
-
-            ret->arr[i] = data.m_int;
-            ret->count++;
+            delete[] arr;
+            arr = NULL;
+        }
+        while ( node )
+        {
+            // 释放链表, 链表的结构是 前4个字节记录下一个链表节点地址, 下来的数据就是实际存放的数据, malloc分配的内存
+            PLIST_NODE next = node->next;
+            free(node);
+            node = next;
         }
     }
-    return ret;
-}
+}* PTHREAD_ARG_STRUCT;
+
+PTHREAD_ARG_STRUCT _thread_GetArgs(INT nArgCount, PMDATA_INF pArgInf, int argStart, LPVOID pfn);
 
 #endif

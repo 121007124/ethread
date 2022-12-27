@@ -2,6 +2,8 @@
 #include "elib/fnshare.h"
 #include "elib/lang.h"
 #pragma comment(lib, "legacy_stdio_definitions.lib")
+#include <vcruntime_exception.h>
+
 
 EXTERN_C INT WINAPI ethread_ProcessNotifyLib_ethread(INT nMsg, DWORD dwParam1, DWORD dwParam2);
 #ifndef __E_STATIC_LIB
@@ -179,3 +181,83 @@ EXTERN_C INT WINAPI ethread_ProcessNotifyLib_ethread(INT nMsg, DWORD dwParam1, D
 }
 
 
+
+PTHREAD_ARG_STRUCT _thread_GetArgs(INT nArgCount, PMDATA_INF pArgInf, int argStart, LPVOID pfn)
+{
+    const int maxArgCount = nArgCount - argStart;
+    if ( maxArgCount > 256 )
+        return 0; // 做一个限制, 最大支持256个参数, 一般人不会用到这么多参数, 如果用到这么多参数应该传递数组
+
+    PTHREAD_ARG_STRUCT ret = new THREAD_ARG_STRUCT;
+    ret->arr = 0;
+    ret->count = 0;
+    ret->pfn = pfn;
+    ret->hEvent = 0;
+    ret->node = 0;
+    if ( maxArgCount == 0 ) return ret;
+    
+    
+    // 最大就是每个参数占用两个变量, 所以最大参数数量*2是完全够存放
+    ret->arr = new int[maxArgCount * 2];
+
+    // 分配内存, 是按链表节点的内存结构进行分配的, 前4个字节是指向下一个节点的指针, 后面是拷贝的数据
+    auto pfn_copyData = [&](LPCVOID pData, int size) -> int
+    {
+        if ( !pData || size <= 0 )
+            return 0;
+        int newSize = size + sizeof(PLIST_NODE);
+        LPVOID ptr = malloc(newSize);
+        if ( !ptr )
+            throw std::bad_alloc{}; // 分配内存失败
+        PLIST_NODE node = (PLIST_NODE)ptr;
+        node->next = ret->node; // 新加的节点直接放到链表头
+        ret->node = node;       // 记录链表头
+        memcpy(&node->data, pData, size);
+        return (int)&node->data;
+    };
+    for ( int i = 0; i < maxArgCount; i++ )
+    {
+        MDATA_INF& arg = pArgInf[i + argStart];
+
+        switch ( arg.m_dtDataType )
+        {
+        case SDT_BYTE:          // 字节
+        case SDT_SHORT:         // 短整数
+        case SDT_INT:           // 整数
+        case SDT_SUB_PTR:       // 子程序指针
+        case SDT_FLOAT:         // 小数
+        case SDT_BOOL:          // 逻辑
+            ret->arr[ret->count++] = arg.m_int;
+            break;
+        case SDT_TEXT:          // 文本
+        {
+            int size = ( arg.m_pText && arg.m_pText[0] ) ? (int)strlen(arg.m_pText) : 0;
+            ret->arr[ret->count++] = pfn_copyData(arg.m_pText, size + 1);
+            break;
+        }
+        case SDT_INT64:         // 长整数
+        case SDT_DOUBLE:        // 双精度小数
+        case SDT_DATE_TIME:     // 日期时间
+        {
+            LPINT p = &arg.m_int;
+            ret->arr[ret->count++] = *p++;  // 长整数, 双精度小数, 日期时间都是8个字节, 用两个整数来表示
+            ret->arr[ret->count++] = *p++;
+            break;
+        }
+        case SDT_BIN:           // 字节集
+        {
+            int size = 0;
+            LPBYTE p = GetAryElementInf(arg.m_pAryData, &size);
+
+            // 字节集前面是固定8个字节, 直接-8
+            const int binSize = 8;
+            ret->arr[ret->count++] = pfn_copyData(p - binSize, size + binSize);
+            break;
+        }
+        default:                // 其他数据类型就退出循环, 空参数也是其他数据类型
+            i = maxArgCount;    // 直接给循环变量赋值为一个不能循环的条件
+            break;
+        }
+    }
+    return ret;
+}

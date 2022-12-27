@@ -26,7 +26,7 @@
     _MAKE(  9, "线程池复制构造函数", ThreadPoolCopy, "线程池复制构造函数", -1, _CMD_OS(__OS_WIN) | CT_IS_OBJ_COPY_CMD | CT_IS_HIDED, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 10, "线程池析构函数", ThreadPoolFree, "线程池析构函数", -1, _CMD_OS(__OS_WIN) | CT_IS_OBJ_FREE_CMD | CT_IS_HIDED, _SDT_NULL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 11, "初始化", ThreadPool_Init, "初始化线程池, 返回是否初始化成功\r\n设计理念是: 你有一次使用到了这么多条线程, 那就会使用到第二次, 所以不会自动释放空闲的线程", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_ethread_global_var + 6)\
-    _MAKE( 12, "添加任务", ThreadPool_AddTask, "添加线程任务, 回调函数有多少个参数就填写多少个参数, 返回石头添加成功", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_ethread_global_var + 8)\
+    _MAKE( 12, "添加任务", ThreadPool_AddTask, "添加线程任务, 回调函数有多少个参数就填写多少个参数, 返回是否添加成功", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_ethread_global_var + 8)\
     _MAKE( 13, "销毁", ThreadPool_Destroy, "销毁线程池, 根据传递的参数决定如何销毁, 默认是等待所有任务结束", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_ethread_global_var + 10)\
     _MAKE( 14, "取空闲线程数", ThreadPool_GetVacant, "取当前空闲的线程数", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 15, "取执行线程数", ThreadPool_GetExecuteCount, "取当前执行的线程数", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, 0)\
