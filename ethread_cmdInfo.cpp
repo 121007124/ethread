@@ -1,7 +1,7 @@
+#if !defined(__E_STATIC_LIB)
 #include "include_ethread_header.h"
 
 //TODO 静态库需要的部分,会记录所有的函数名到数组里,静态编译的时候需要取回命令名
-#if !defined(__E_STATIC_LIB)
 static ARG_INFO g_argumentInfo_ethread_global_var[] = 
 {
     // 1=参数名称, 2=参数详细解释, 3=指定图像索引,从1开始,0表示无, 4=图像数目(用作动画)

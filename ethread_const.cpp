@@ -1,3 +1,4 @@
+#ifndef __E_STATIC_LIB
 //#define    CT_NULL 0
 //#define    CT_NUM  1      // value sample: 3.1415926
 //#define    CT_BOOL 2      // value sample: 1
@@ -11,7 +12,6 @@
 //DOUBLE m_dbValue;         // CT_NUM¡¢CT_BOOL
 #include "include_ethread_header.h"
 
-#ifndef __E_STATIC_LIB
 LIB_CONST_INFO g_ConstInfo_ethread_global_var[] =
 {
     //#define    CT_NULL 0

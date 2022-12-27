@@ -1,6 +1,6 @@
+#ifndef __E_STATIC_LIB
 #include "include_ethread_header.h"
 
-#ifndef __E_STATIC_LIB
 
 static INT s_dtCmdIndex_ethread_ThreadPool_static_var_00[] =
 {
