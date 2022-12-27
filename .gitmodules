@@ -1,0 +1,4 @@
+[submodule "ethread"]
+	path = ethread
+	url = https://gitee.com/qq121007124/ethread.git
+	branch = master
