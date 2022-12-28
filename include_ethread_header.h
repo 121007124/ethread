@@ -17,6 +17,9 @@ extern int g_cmdInfo_ethread_global_var_count;
 extern ARG_INFO g_argumentInfo_ethread_global_var[];
 extern LIB_DATA_TYPE_INFO g_DataType_ethread_global_var[];
 extern int g_DataType_ethread_global_var_count;
+
+#define SDT_TYPE_POOLINFO           MAKELONG (2, 0) // 线程池信息结构
+
 #endif
 
 #define ETHREAD_DEF_CMD(_index, _szName, _szEgName, _szExplain, _shtCategory, _wState, _dtRetValType, _wReserved, _shtUserLevel, _shtBitmapIndex, _shtBitmapCount, _nArgCount, _pBeginArgInfo) \

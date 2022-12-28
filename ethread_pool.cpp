@@ -1,5 +1,6 @@
 #include "include_ethread_header.h"
 #include "CThreadPool.h"
+#include "elib/fnshare.h"
 
 
 
@@ -91,11 +92,7 @@ ETHREAD_EXTERN_C void ethread_ThreadPool_AddTask_12_ethread(PMDATA_INF pRetData,
                     return r;
                 }, args);
     pRetData->m_bool = true;
-
-    //std::thread thread;
-    //std::thread::native_handle();
-    //std::this_thread::sleep_for();
-        
+    
 }
 
 
@@ -170,4 +167,33 @@ ETHREAD_EXTERN_C void ethread_ThreadPool_GetState_20_ethread(PMDATA_INF pRetData
     ThreadPool* pool = pool_getobj(pArgInf[0], 0);
     if ( !pool ) return;
     pRetData->m_int = pool->GetState();
+}
+
+// 调用格式: SDT_BOOL (线程池).挂起任务, 命令说明: "挂起线程池所有任务线程"
+// 无参数
+ETHREAD_EXTERN_C void ethread_ThreadPool_Suspend_29_ethread(PMDATA_INF pRetData, INT nArgCount, PMDATA_INF pArgInf)
+{
+    ThreadPool* pool = pool_getobj(pArgInf[0], 0);
+    if ( !pool ) return;
+    pRetData->m_int = pool->suspend();
+}
+
+// 调用格式: SDT_BOOL (线程池).唤醒任务, 命令说明: "唤醒线程池所有任务线程"
+// 无参数
+ETHREAD_EXTERN_C void ethread_ThreadPool_Resume_30_ethread(PMDATA_INF pRetData, INT nArgCount, PMDATA_INF pArgInf)
+{
+    ThreadPool* pool = pool_getobj(pArgInf[0], 0);
+    if ( !pool ) return;
+    pRetData->m_int = pool->suspend();
+}
+
+// 调用格式: SDT_BOOL (线程池).取信息, 命令说明: "获取线程池基础信息"
+// 参数<1>: 接收信息变量& SDT_TYPE_POOLINFO, 参数说明: "接收线程池信息的结构变量"
+ETHREAD_EXTERN_C void ethread_ThreadPool_GetInfo_31_ethread(PMDATA_INF pRetData, INT nArgCount, PMDATA_INF pArgInf)
+{
+    ThreadPool* pool = pool_getobj(pArgInf[0], 0);
+    if ( !pool ) return;
+    ThreadPool::PTHREAD_POOL_INFO info = (ThreadPool::PTHREAD_POOL_INFO)pArgInf[1].m_int;
+    pRetData->m_int = pool->GetInfo(info);
+    pRetData->m_bool = true;
 }

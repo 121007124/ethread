@@ -1,7 +1,6 @@
 #ifndef _THREAD_POOL_H_
 #define _THREAD_POOL_H_
 
-#include <windows.h>
 #include <vector>
 #include <queue>
 #include <atomic>
@@ -21,15 +20,19 @@ private:
         working,        // 正在工作
         createing,      // 正在创建
         destroying,     // 正在销毁
+        suspending,     // 线程池已经挂起
         
     };
 
     enum POOL_DESTROY_MODE
     {
         POOL_DESTROY_MODE_WAIT,
-        POOL_DESTROY_MODE_DETACH,
+        POOL_DESTROY_MODE_DETACH,       // 让线程自生自灭
+        POOL_DESTROY_MODE_SUSPEND,      // 挂起线程, 永远不唤醒
+        POOL_DESTROY_MODE_TERMINATE,    // 强制结束线程, 不推荐
     };
-    using Task = std::function<void()>;    //定义类型
+    
+    using Task = std::function<void()>;    // 定义类型
     
     std::vector<std::thread>    workers;        // 线程池线程列表
     std::queue<Task>            tasks;          // 任务队列
@@ -40,6 +43,18 @@ private:
     std::atomic<POOL_ENUM>      state;          // 线程池状态, POOL_ENUM 这个枚举类型里的值
     //std::atomic<size_t>         queue_count;    // 任务数量
 
+public:
+    typedef struct THREAD_POOL_INFO
+    {
+        size_t Vacant;          // 空闲线程数
+        size_t ExecuteCount;    // 执行线程数
+        size_t QueueCount;      // 队列任务数
+        size_t size;            // 线程池容量
+        size_t MaxSize;         // 线程池最大容量
+        BOOL   IsVacant;        // 是否空闲
+        size_t State;           // 状态
+    }*PTHREAD_POOL_INFO;
+    
 public:
     ThreadPool()
     {
@@ -78,7 +93,7 @@ public:
 
     inline bool destroy(int mode)
     {
-        if ( state == POOL_ENUM::ready )
+        if ( state != POOL_ENUM::working )
             return false;
         state = POOL_ENUM::destroying;  // 正在销毁
 
@@ -89,14 +104,36 @@ public:
         {
             switch ( mode )
             {
-            case ThreadPool::POOL_DESTROY_MODE_WAIT:
-            
             case ThreadPool::POOL_DESTROY_MODE_DETACH:
             {
                 // 把线程和这个对象分离, 让线程自生自灭
                 thread.detach();
                 break;
             }
+            case ThreadPool::POOL_DESTROY_MODE_SUSPEND:
+            {
+                // 挂起线程, 让线程永远不唤醒
+                if ( thread.joinable() )
+                {
+                    HANDLE hThread = thread.native_handle();
+                    if ( hThread )
+                        SuspendThread(hThread);
+                    thread.detach();
+                }
+                break;
+            }
+            //case ThreadPool::POOL_DESTROY_MODE_TERMINATE:
+            //{
+            //    // 强制结束线程, 不推荐
+            //    if ( thread.joinable() )
+            //    {
+            //        HANDLE hThread = thread.native_handle();
+            //        if ( hThread )
+            //            TerminateThread(hThread, 0);
+            //        thread.detach();
+            //    }
+            //    break;
+            //}
             default:
             {
                 // 默认按等待任务结束来退出
@@ -106,10 +143,10 @@ public:
             }
             }
         }
-        
+
         // 加锁, 然后清除任务队列和线程数组
-        std::unique_lock<std::mutex> lock_workers{ workers_mutex };
-        std::unique_lock<std::mutex> lock_queue{ queue_mutex };
+        std::lock_guard<std::mutex> lock_workers{ workers_mutex };
+        std::lock_guard<std::mutex> lock_queue{ queue_mutex };
         while ( tasks.size() )
             tasks.pop();
         workers.clear();
@@ -153,6 +190,66 @@ public:
 
         condition.notify_one(); // 唤醒一个线程执行
         return future;
+    }
+
+    // 挂起线程池
+    inline bool suspend()
+    {
+        if ( state != POOL_ENUM::working )
+            return false;
+        std::lock_guard<std::mutex> lock_workers{ workers_mutex };
+        state = POOL_ENUM::suspending;
+        for ( std::thread& thread : workers )
+        {
+            // 把线程池所有线程挂起
+            if ( thread.joinable() )
+            {
+                HANDLE hThread = thread.native_handle();
+                if ( hThread )
+                    SuspendThread(hThread);
+            }
+        }
+        return true;
+    }
+    
+    // 恢复线程池
+    inline bool resume()
+    {
+        if ( state != POOL_ENUM::suspending )
+            return false;
+        std::lock_guard<std::mutex> lock_workers{ workers_mutex };
+        state = POOL_ENUM::working;
+        for ( std::thread& thread : workers )
+        {
+            // 把线程池所有线程恢复
+            if ( thread.joinable() )
+            {
+                HANDLE hThread = thread.native_handle();
+                if ( hThread )
+                    ResumeThread(hThread);
+            }
+        }
+        return true;
+    }
+    
+    // 获取线程池信息
+    inline bool GetInfo(PTHREAD_POOL_INFO info)
+    {
+        // 如果不是工作状态就返回
+        if ( !info || state != POOL_ENUM::working )
+            return false;
+        
+        std::lock_guard<std::mutex> lock{ queue_mutex };
+        std::lock_guard<std::mutex> lock_workers{ workers_mutex };
+
+        info->Vacant        = idlThrNum;
+        info->size          = workers.size();
+        info->QueueCount    = tasks.size();
+        info->MaxSize       = workers.capacity();
+        info->ExecuteCount  = info->size - idlThrNum;
+        info->IsVacant      = info->QueueCount == 0 && info->ExecuteCount == 0;
+        info->State         = (size_t)(POOL_ENUM)state;
+        return true;
     }
 
     // 取空闲线程数

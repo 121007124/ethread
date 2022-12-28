@@ -54,6 +54,9 @@
     _MAKE( 28, "投递线程消息", PostThreadMsg, "向有消息循环的线程投递一条消息, 成功返回真, 失败返回假, 返回假时可以调用 GetLastError 获取错误码\r\n"\
             "        如果投递 WM_QUIT(18) 消息, 则 \"创建线程消息循环\" 创建的消息循环会退出循环\r\n"\
             "    【注意】如果向其他进程投递线程消息则会有权限的问题, 如果返回假, 并且 GetLastError() 返回5, 那就是当前进程的权限不支持投递消息到目标进程", 1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 4, g_argumentInfo_ethread_global_var + 20)\
+    _MAKE( 29, "挂起任务", ThreadPool_Suspend, "挂起线程池所有任务线程", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
+    _MAKE( 30, "唤醒任务", ThreadPool_Resume, "唤醒线程池所有任务线程", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
+    _MAKE( 31, "取信息", ThreadPool_GetInfo, "获取线程池基础信息", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_ethread_global_var + 24)\
     \
     ETHREAD_EMPTY("多线程支持库所有命令定义完毕")
 

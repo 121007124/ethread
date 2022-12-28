@@ -30,7 +30,7 @@ static ARG_INFO g_argumentInfo_ethread_global_var[] =
     /*008*/ {"欲执行的子程序", "本参数提供创建线程时欲启动的子程序, 只支持传递整数型的子程序地址或者子程序指针类型, 其他类型直接调用失败", 0, 0, _SDT_ALL, 0, NULL},
     /*009*/ {"线程参数", "传递到线程里的参数, 支持11个易语言的基础数据类型, 遇到空参数或者不是基础数据类型则视为结束传参", 0, 0, _SDT_ALL, 0, AS_DEFAULT_VALUE_IS_EMPTY},
     
-    /*010*/ {"销毁模式", "1=让线程自生自灭, 其他=等待线程结束", 0, 0, SDT_INT, 0, AS_DEFAULT_VALUE_IS_EMPTY},
+    /*010*/ {"销毁模式", "1=让任务线程自生自灭, 2=挂起所有任务, 永远不唤醒, 其他=等待任务结束", 0, 0, SDT_INT, 0, AS_DEFAULT_VALUE_IS_EMPTY},
 
     /*011*/ {"欲执行的子程序", "本参数提供创建线程时欲启动的子程序, 只支持传递整数型的子程序地址或者子程序指针类型, 其他类型直接调用失败", 0, 0, _SDT_ALL, 0, NULL},
     /*012*/ {"创建标志", "请参考 #启动线程_ 开头常量, 默认为 #启动线程_默认, 多个标志请使用 位或(值1, 值2, 值3, ...)", 0, 0, SDT_INT, 0, AS_DEFAULT_VALUE_IS_EMPTY},
@@ -49,8 +49,9 @@ static ARG_INFO g_argumentInfo_ethread_global_var[] =
     /*021*/ {"消息值", "消息值的限制请查看MSDN, 大于65535的消息会投递失败", 0, 0, SDT_INT, 0, 0},
     /*022*/ {"参数1", "投递到消息队列里的参数1", 0, 0, SDT_INT, 0, AS_DEFAULT_VALUE_IS_EMPTY},
     /*023*/ {"参数2", "投递到消息队列里的参数2", 0, 0, SDT_INT, 0, AS_DEFAULT_VALUE_IS_EMPTY},
-
     
+    /*024*/ {"接收信息变量", "接收线程池信息的结构变量", 0, 0, SDT_TYPE_POOLINFO, 0, AS_RECEIVE_VAR},
+
 };
 
 #ifdef _DEBUG    // 这里是为了确认参数序号是否正确, 成员数比最后一个序号大1就是正确
