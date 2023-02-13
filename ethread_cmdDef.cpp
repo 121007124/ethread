@@ -393,3 +393,4 @@ ETHREAD_EXTERN_C void ethread_PostThreadMsg_28_ethread(PMDATA_INF pRetData, INT 
     INT      arg4 = pArgInf[3].m_int;
     pRetData->m_bool = PostThreadMessageW(arg1, arg2, arg3, arg4);
 }
+

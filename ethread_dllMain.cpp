@@ -36,7 +36,7 @@ static LIB_INFO g_LibInfo_ethread_global_var =
     /*m_dwLibFormatVer*/        LIB_FORMAT_VER, // 库格式号, 应该等于LIB_FORMAT_VER
     /*m_szGuid*/                "5F99C1642A2F4e03850721B4F5D7C3F8", // 对应于本库的唯一GUID串, 不能为NULL或空, 库的所有版本此串都应相同
     /*m_nMajorVersion*/         3, // 本库的主版本号, 必须大于0
-    /*m_nMinorVersion*/         0, // 本库的次版本号
+    /*m_nMinorVersion*/         2, // 本库的次版本号
     /*m_nBuildNumber*/          3, // 构建版本号, 无需对此版本号作任何处理
 
     /*m_nRqSysMajorVer*/        3, // 所需要的易语言系统的主版本号

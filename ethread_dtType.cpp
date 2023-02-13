@@ -4,7 +4,7 @@
 
 static INT s_dtCmdIndex_ethread_ThreadPool_static_var_00[] =
 {
-    8,9,10,11,13,12,14,15,16,17,18,19,20,
+    8,9,10,11,13,12,14,15,16,17,18,19,20,29,30,31,
 };
 
 static const int s_dtCmdIndex_ethread_ThreadPool_static_var_count_00 = sizeof(s_dtCmdIndex_ethread_ThreadPool_static_var_00) / sizeof(s_dtCmdIndex_ethread_ThreadPool_static_var_00[0]);
