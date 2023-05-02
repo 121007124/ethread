@@ -28,7 +28,7 @@
     _MAKE( 11, "初始化", ThreadPool_Init, "初始化线程池, 返回是否初始化成功\r\n设计理念是: 你有一次使用到了这么多条线程, 那就会使用到第二次, 所以不会自动释放空闲的线程"\
         , -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 3, g_argumentInfo_ethread_global_var + 27)\
     _MAKE( 12, "添加任务", ThreadPool_AddTask, "添加线程任务, 回调函数有多少个参数就填写多少个参数, 返回是否添加成功", -1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_ethread_global_var + 8)\
-    _MAKE( 13, "销毁", ThreadPool_Destroy, "销毁线程池, 根据传递的参数决定如何销毁, 默认是等待所有任务结束", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_ethread_global_var + 10)\
+    _MAKE( 13, "销毁", ThreadPool_Destroy, "销毁线程池, 根据传递的参数决定如何销毁, 默认是等待所有任务结束", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_ethread_global_var + 32)\
     _MAKE( 14, "取空闲线程数", ThreadPool_GetVacant, "取当前空闲的线程数", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 15, "取执行线程数", ThreadPool_GetExecuteCount, "取当前执行的线程数", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 16, "取队列任务数", ThreadPool_GetQueueCount, "取等待执行的任务数量, 添加到队列里还没被执行的任务", -1, _CMD_OS(__OS_WIN), SDT_INT, 0, LVL_SIMPLE, 0, 0, 0, 0)\
@@ -58,7 +58,7 @@
     _MAKE( 29, "挂起任务", ThreadPool_Suspend, "挂起线程池所有任务线程", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 30, "唤醒任务", ThreadPool_Resume, "唤醒线程池所有任务线程", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 0, 0)\
     _MAKE( 31, "取信息", ThreadPool_GetInfo, "获取线程池基础信息", -1, _CMD_OS(__OS_WIN), SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 1, g_argumentInfo_ethread_global_var + 24)\
-    _MAKE( 32, "线程池_取回参数", GetArgument, "获取线程池投递任务的参数信息, 功能与 多线程_还原无限参数 完全一样, 多这个命令只是为了区分是取回调的参数还是取生成的参数"\
+    _MAKE( 32, "线程池_取回参数", GetArgument, "获取线程池投递任务的参数信息, 功能与 多线程_还原无限参数 完全一样, 多这个命令只是为了区分是取回调的参数还是取生成的参数\r\n"\
             "    【注意】只允许在初始化线程池填写的回调函数内调用, 其他地方调用会崩溃",\
             1, _CMD_OS(__OS_WIN) | CT_ALLOW_APPEND_NEW_ARG, SDT_BOOL, 0, LVL_SIMPLE, 0, 0, 2, g_argumentInfo_ethread_global_var + 25)\
     _MAKE( 33, "多线程_生成无限参数", Make_Arguments, "根据传递进来的参数生成无限参数列表, 不使用时必须调用 多线程_释放无限参数() 来释放, 否则会内存泄漏"\

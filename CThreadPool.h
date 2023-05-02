@@ -24,13 +24,6 @@ private:
         
     };
 
-    enum POOL_DESTROY_MODE
-    {
-        POOL_DESTROY_MODE_WAIT,
-        POOL_DESTROY_MODE_DETACH,       // 让线程自生自灭
-        POOL_DESTROY_MODE_SUSPEND,      // 挂起线程, 永远不唤醒
-        POOL_DESTROY_MODE_TERMINATE,    // 强制结束线程, 不推荐
-    };
     
     using Task = std::function<void()>;    // 定义类型
     
@@ -44,6 +37,14 @@ private:
     //std::atomic<size_t>         queue_count;    // 任务数量
 
 public:
+    enum POOL_DESTROY_MODE
+    {
+        POOL_DESTROY_MODE_WAIT,
+        POOL_DESTROY_MODE_DETACH,       // 让线程自生自灭
+        POOL_DESTROY_MODE_SUSPEND,      // 挂起线程, 永远不唤醒
+        POOL_DESTROY_MODE_TERMINATE,    // 强制结束线程, 不推荐
+        POOL_DESTROY_MODE_WAIT_MSG,     // 等待线程, 并处理消息, 用于窗口线程
+    };
     typedef struct THREAD_POOL_INFO
     {
         size_t Vacant;          // 空闲线程数
@@ -91,7 +92,21 @@ public:
         return true;
     }
 
-    inline bool destroy(int mode)
+    // 获取当前线程池内所有线程句柄
+    inline bool GetThreadHandles(std::vector<HANDLE>& arr)
+    {
+        if ( state != POOL_ENUM::working )
+            return false;
+        arr.clear();
+        for ( std::thread& thread : workers )
+        {
+            HANDLE hThread = thread.native_handle();
+            if ( hThread )
+                arr.push_back(hThread);
+        }
+        return true;
+    }
+    inline bool destroy(int mode, DWORD waitTimer = 0)
     {
         if ( state != POOL_ENUM::working )
             return false;
@@ -110,18 +125,18 @@ public:
                 thread.detach();
                 break;
             }
-            case ThreadPool::POOL_DESTROY_MODE_SUSPEND:
-            {
-                // 挂起线程, 让线程永远不唤醒
-                if ( thread.joinable() )
-                {
-                    HANDLE hThread = thread.native_handle();
-                    if ( hThread )
-                        SuspendThread(hThread);
-                    thread.detach();
-                }
-                break;
-            }
+            //case ThreadPool::POOL_DESTROY_MODE_SUSPEND:
+            //{
+            //    // 挂起线程, 让线程永远不唤醒, 不推荐
+            //    if ( thread.joinable() )
+            //    {
+            //        HANDLE hThread = thread.native_handle();
+            //        if ( hThread )
+            //            SuspendThread(hThread);
+            //        thread.detach();
+            //    }
+            //    break;
+            //}
             //case ThreadPool::POOL_DESTROY_MODE_TERMINATE:
             //{
             //    // 强制结束线程, 不推荐
@@ -136,9 +151,19 @@ public:
             //}
             default:
             {
-                // 默认按等待任务结束来退出
+                // 默认按等待任务结束来退出, 根据模式决定要不要处理消息
                 if ( thread.joinable() )
-                    thread.join();  // 等待任务结束, 前提: 线程一定会执行完, 如果线程一直不返回, 那会一直卡住
+                {
+                    HANDLE hThread = thread.native_handle();
+                    if ( hThread )
+                    {
+                        if ( waitTimer == 0 )
+                            waitTimer = INFINITE;
+                        const bool isMsg = mode == POOL_DESTROY_MODE_WAIT_MSG;
+                        WaitObj(&hThread, 1, isMsg, waitTimer);
+                    }
+                    thread.detach();
+                }
                 break;
             }
             }
@@ -151,6 +176,7 @@ public:
             tasks.pop();
         workers.clear();
         state = POOL_ENUM::ready;  // 状态设置为就绪, 可以进行下一次的初始化操作
+
         return true;
     }
 
@@ -175,7 +201,7 @@ public:
         // typename std::result_of<F(Args...)>::type, 函数 f 的返回值类型
         using RetType = decltype( f(args...) );
 
-        // 把函数入口及参数,打包(绑定)
+        // 把函数入口及参数, 打包(绑定)
         auto task = std::make_shared<std::packaged_task<RetType()>>(
             std::bind(std::forward<F>(f), std::forward<Args>(args)...)
             );
@@ -341,6 +367,53 @@ private:
             
             idlThrNum++;    // 每增加一个线程任务, 空闲线程就+1
         }
+    }
+
+    // 等待1个或多个对象, 只要有一个对象触发事件就返回, 返回触发对象在数组中索引
+    // hObjects 等待对象的对象数组
+    // ObjectCount = 等待的对象数量
+    // loopMsg = 是否消息循环, 如果是在线程内, 可以为假, 为真时会处理消息
+    // waitTimer = 等待时间, 默认为 INFINITE , 无限等待
+    inline static DWORD WaitObj(HANDLE* hObjects, DWORD ObjectCount, bool loopMsg = false, DWORD waitTimer = INFINITE)
+    {
+        if ( ObjectCount == 0 || hObjects == 0 || *hObjects == 0 ) return 0;
+
+        if ( loopMsg )
+        {
+            ULONGLONG time = GetTickCount64();
+            while ( GetTickCount64() - time < (ULONGLONG)waitTimer )
+            {
+                DWORD ret = MsgWaitForMultipleObjects(ObjectCount, hObjects, FALSE, waitTimer, QS_ALLINPUT);
+                if ( ret >= WAIT_OBJECT_0 && ret < WAIT_OBJECT_0 + ObjectCount )
+                    return (DWORD)0;    // 超时, 失败, 成功 都退出循环
+                if ( ret == WAIT_TIMEOUT || ret == WAIT_FAILED )
+                    return (DWORD)-1;
+                if ( ret == WAIT_OBJECT_0 + ObjectCount )
+                {
+                    MSG msg;
+                    if ( PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE) )
+                    {
+                        //if ( msg.message == WM_QUIT )
+                        //{
+                        //    // 窗口线程已经退出, 那就直接返回等待
+                        //    return (DWORD)-1;
+                        //}
+                        //char dbg[1024];
+                        //sprintf_s(dbg, "消息值 = %d, hwnd = %d\n", msg.message, msg.hwnd);
+                        //OutputDebugStringA(dbg);
+                        TranslateMessage(&msg);
+                        DispatchMessageW(&msg);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if ( ObjectCount == 1 )
+                return WaitForSingleObject(*hObjects, waitTimer);
+            return WaitForMultipleObjects(ObjectCount, hObjects, FALSE, waitTimer);
+        }
+        return (DWORD)-1;
     }
 };
 

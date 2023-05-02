@@ -10,7 +10,7 @@ typedef void ( CALLBACK* PFN_Complete )( LPVOID, LPVOID, LPVOID );
 class CMyThreadPool : public ThreadPool
 {
 public:
-    PFN_Complete m_pfnComplete;
+    PFN_Complete m_pfnComplete; // 任务完成回调
     CMyThreadPool() :ThreadPool() { }
     CMyThreadPool(int count, int maxCount, PFN_Complete pfnComplete) :
         ThreadPool(count, maxCount),
@@ -133,8 +133,41 @@ ETHREAD_EXTERN_C void ethread_ThreadPool_Destroy_13_ethread(PMDATA_INF pRetData,
     INT      arg1 = pArgInf[1].m_int;
     CMyThreadPool* pool = pool_getobj(pArgInf[0], 0);
     if ( !pool ) return;
+
+    pArgInf[0].m_ppCompoundData[0] = 0; // 把易语言记录的内存池句柄设置为0
+
+    if ( arg1 == CMyThreadPool::POOL_DESTROY_MODE::POOL_DESTROY_MODE_DETACH )
+    {
+        // 如果是让线程自生自灭, 则不能马上delete pool, 不然任务结束后this指针已经被释放了, 内部再继续使用就崩溃了
+        std::thread t([pool, arg1]()
+                      {
+                          // 直接等待线程池所有任务都执行完毕后才返回
+                          pool->destroy(CMyThreadPool::POOL_DESTROY_MODE::POOL_DESTROY_MODE_WAIT);
+                          delete pool;  // 释放对象
+                      });
+        t.detach();
+        pRetData->m_bool = true;
+        return;
+    }
+
+    if ( arg1 == CMyThreadPool::POOL_DESTROY_MODE::POOL_DESTROY_MODE_SUSPEND
+        || arg1 == CMyThreadPool::POOL_DESTROY_MODE::POOL_DESTROY_MODE_TERMINATE )
+    {
+        //std::thread t([pool, arg1]()
+        //              {
+        //                  // 直接等待线程池所有任务都执行完毕后才返回
+        //                  pool->destroy(CMyThreadPool::POOL_DESTROY_MODE::POOL_DESTROY_MODE_WAIT);
+        //                  delete pool;  // 释放对象
+        //              });
+        //t.detach();
+        pRetData->m_bool = pool->destroy(arg1);
+        pRetData->m_bool = true;
+        return;
+    }
+
+    // 走到这里就是要等待任务结束才返回
     pRetData->m_bool = pool->destroy(arg1);
-    pArgInf[0].m_ppCompoundData[0] = 0;
+    delete pool;
 }
 
 // 调用格式: SDT_INT (线程池).取空闲线程数, 命令说明: "取当前空闲的线程数"
